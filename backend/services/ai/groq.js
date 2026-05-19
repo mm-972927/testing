@@ -3,10 +3,9 @@ import Groq from 'groq-sdk';
 const MODEL = 'llama-3.3-70b-versatile';
 
 function getGroq() {
-  if (!process.env.GROQ_API_KEY) {
-    throw new Error('GROQ_API_KEY is not set. Add it to your .env file. Get a free key at console.groq.com');
-  }
-  return new Groq({ apiKey: process.env.GROQ_API_KEY });
+  const key = process.env.GROQ_API_KEY;
+  if (!key) throw new Error('GROQ_API_KEY is not set. Add it to your Vercel environment variables. Get a free key at console.groq.com');
+  return new Groq({ apiKey: key });
 }
 
 async function chat(messages, json = false) {
@@ -32,7 +31,7 @@ Already has these goals: ${existing}
 Suggest 3 new, specific, measurable goals that:
 - Are distinct from existing goals
 - Follow SMART criteria
-- Include a recommended weightage (10-30%) and unit of measurement (percent / numeric / timeline / zero / max)
+- Include a recommended weightage (10-30%) and unit of measurement
 - Suit someone in ${department}
 
 Respond ONLY with valid JSON:
