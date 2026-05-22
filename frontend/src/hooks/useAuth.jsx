@@ -4,14 +4,24 @@ import api from '../lib/api';
 const AuthCtx = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user,    setUser]    = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('aq_token');
-    if (token) {
-      api.get('/auth/me').then(r => setUser(r.data)).catch(() => localStorage.removeItem('aq_token')).finally(() => setLoading(false));
-    } else setLoading(false);
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+    // Verify token with backend
+    api.get('/auth/me')
+      .then(r => setUser(r.data))
+      .catch(() => {
+        // Token invalid or backend unreachable — clear it but don't hard-redirect
+        // The Guard component will handle the redirect gracefully
+        localStorage.removeItem('aq_token');
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const login = async (email, password) => {
@@ -26,7 +36,11 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  return <AuthCtx.Provider value={{ user, login, logout, loading }}>{children}</AuthCtx.Provider>;
+  return (
+    <AuthCtx.Provider value={{ user, login, logout, loading }}>
+      {children}
+    </AuthCtx.Provider>
+  );
 }
 
 export const useAuth = () => useContext(AuthCtx);
