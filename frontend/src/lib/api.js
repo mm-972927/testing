@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+// Production backend URL - update this to match your Vercel backend URL
+const PROD_BACKEND = 'https://testing-vov1.vercel.app/api';
+const BASE = import.meta.env.VITE_API_URL || PROD_BACKEND;
 
 const api = axios.create({ baseURL: BASE });
 
@@ -11,26 +13,29 @@ api.interceptors.request.use(cfg => {
 });
 
 api.interceptors.response.use(r => r, err => {
-  if (err.response?.status === 401) {
+  // ONLY redirect to login if /auth/me fails with 401
+  // Do NOT redirect for login failures, goal fetches, etc.
+  const url = err.config?.url || '';
+  if (err.response?.status === 401 && url.includes('/auth/me')) {
     localStorage.removeItem('aq_token');
-    window.location.href = '/login';
+    if (!window.location.pathname.startsWith('/login') &&
+        !window.location.pathname.startsWith('/register')) {
+      window.location.href = '/login';
+    }
   }
   return Promise.reject(err);
 });
 
-// Helper: download CSV using fetch (handles auth header properly)
 export async function downloadCSV() {
   const token = localStorage.getItem('aq_token');
-  const res = await fetch(`${BASE}/goals/export`, {
+  const res   = await fetch(`${BASE}/goals/export`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   if (!res.ok) throw new Error('Export failed');
   const blob = await res.blob();
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
-  a.href     = url;
-  a.download = 'achievement-report.csv';
-  a.click();
+  a.href = url; a.download = 'achievement-report.csv'; a.click();
   URL.revokeObjectURL(url);
 }
 
